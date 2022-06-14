@@ -10,6 +10,9 @@ from render import Render, config
 
 render_engines = {size: Render(size) for size in config.SIZES}
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*"
+}
 
 class Board(BaseModel):
     field: list[list[str]] = [
@@ -34,9 +37,7 @@ app = FastAPI(title="ChessRenderAPI")
 
 @app.get("/sizes", response_model=list[int])
 async def sizes():
-    return JSONResponse(content=config.SIZES, headers={
-        "Access-Control-Allow-Origin": "*"
-    })
+    return JSONResponse(content=config.SIZES, headers=CORS_HEADERS)
 
 
 @app.get("/render")
@@ -46,8 +47,6 @@ async def sizes():
 async def convert(size: int = config.SIZES[0], board: Board = Body(default=Board())):
     if size not in config.SIZES:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid size")
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid size", headers=CORS_HEADERS)
     image = render_engines[size].render(**board.dict())
-    return Response(image, media_type="image/png", headers={
-        "Access-Control-Allow-Origin": "*"
-    })
+    return Response(image, media_type="image/png", headers=CORS_HEADERS)
