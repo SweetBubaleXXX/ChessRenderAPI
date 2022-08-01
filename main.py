@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable, Optional
 
 from fastapi import Body, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 
@@ -10,9 +11,6 @@ from render import Render, config
 
 render_engines = {size: Render(size) for size in config.SIZES}
 
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*"
-}
 
 class Board(BaseModel):
     field: list[list[str]] = [
@@ -34,19 +32,28 @@ class Board(BaseModel):
 
 app = FastAPI(title="ChessRenderAPI")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/sizes", response_model=list[int])
 async def sizes():
-    return JSONResponse(content=config.SIZES, headers=CORS_HEADERS)
+    return JSONResponse(content=config.SIZES)
 
 
 @app.get("/render")
 @app.post("/render", response_class=Response, responses={
     200: {"content": {"image/png": {}}}
 })
-async def convert(size: int = config.SIZES[0], board: Board = Body(default=Board())):
+async def convert(size: int = config.SIZES[0],
+                  board: Board = Body(default=Board())):
     if size not in config.SIZES:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid size", headers=CORS_HEADERS)
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid size")
     image = render_engines[size].render(**board.dict())
-    return Response(image, media_type="image/png", headers=CORS_HEADERS)
+    return Response(content=image, media_type="image/png")
