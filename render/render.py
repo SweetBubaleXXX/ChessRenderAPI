@@ -4,7 +4,7 @@ from typing import Optional
 
 from PIL import Image
 
-from . import config
+import config
 
 PATH = path.dirname(__file__)
 
